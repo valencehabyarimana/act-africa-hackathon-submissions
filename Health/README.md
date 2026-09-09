@@ -1,72 +1,113 @@
-# Does 99% Mean Anything?
+# MedSigLIP Chest X-ray Classification and Audit
 
-An audit of a MedSigLIP chest X-ray classifier.
-ACT-Africa 2026 Hackathon — Group 2, Health.
+## Project Description
 
-We froze `google/medsiglip-448`, embedded 2,600 chest X-rays, and trained a small
-head to sort them into four classes. It scores 99%. This app is about whether that
-number means anything.
+This project is a medical-imaging machine-learning application that classifies
+chest X-ray images into four categories: `COVID`, `NORMAL`, `PNEUMONIA`, and `TB`.
+It was developed for the ACT-Africa 2026 Hackathon by Group 2, Health.
 
-**Live app:** _add your Streamlit URL here_
-**Notebook:** `notebook/ACT_2026_Foundation_MedSigLIP_Workshop.ipynb`
+The project combines Google's pretrained MedSigLIP model with a lightweight
+classifier and a Streamlit interface. In addition to displaying predictions, the
+application evaluates how reliable those predictions are by examining model
+performance, possible data leakage, shortcut learning, calibration, zero-shot
+classification, and common failure cases.
 
-## What's in it
+This is an educational and research demonstration. It is not a clinical
+diagnostic system and must not be used to make medical decisions.
 
-| Section | What it shows |
-|---|---|
-| The result | Accuracy, confusion matrix, t-SNE, ROC, precision–recall |
-| Is 99% real? | Near-duplicate leakage audit, and whether a 16×16 blur can do the same job |
-| Zero-shot | Classification with no training at all, using MedSigLIP's unused text tower |
-| Calibration | Reliability diagram, ECE, and how many errors were made confidently |
-| Failure explorer | Every test image, with the real quantized model run live on its embedding |
-| Edge deployment | 3.6 MB → 312 KB, and what that costs |
+## Project Architecture
 
-## Running it
+```text
+Chest X-ray images
+  |
+  v
+MedSigLIP vision encoder
+  |
+  v
+Image embeddings
+  |
+  v
+Lightweight classifier head
+  |
+  v
+Quantized TensorFlow Lite model
+  |
+  v
+Streamlit application
+```
+
+The MedSigLIP encoder is used during the model-development workflow to create
+image embeddings. A small classifier is trained on those embeddings and exported
+as a quantized TensorFlow Lite model. The Streamlit app uses the saved evaluation
+bundle and the lightweight classifier to present the results and audit findings.
+
+## Main Features
+
+- Four-class chest X-ray classification.
+- Accuracy, confusion matrix, ROC, precision-recall, and t-SNE visualizations.
+- Near-duplicate analysis between training and test images.
+- Shortcut tests using blurred images, border pixels, and image metadata.
+- Zero-shot classification with MedSigLIP text prompts.
+- Confidence calibration and overconfident-error analysis.
+- Failure gallery and interactive prediction explorer.
+- TFLite model size, accuracy, and latency evaluation.
+
+## Dataset
+
+The project uses the **Nigeria Chest X-ray Dataset**, organized into the four
+classes used by the application: COVID, NORMAL, PNEUMONIA, and TB.
+
+Original Kaggle dataset:
+
+https://www.kaggle.com/datasets/aminumusa/nigeria-chest-x-ray-dataset
+
+Please review the dataset's terms and licensing conditions before using or
+redistributing the images. This repository contains derived evaluation assets and
+low-resolution thumbnails, not the original dataset.
+
+## Repository Contents
+
+```text
+Health/
+  app.py                                      # Streamlit application
+  requirements.txt                            # Application dependencies
+  ACT_2026_Foundation_MedSigLIP_Workshop_.ipynb
+                 # Model-development notebook
+  assets/
+    meta.json                                 # Experiment metadata and metrics
+    results.npz                               # Saved embeddings and scores
+    cxr_classifier_quant.tflite              # Quantized classifier
+    thumbs/                                   # Test-image thumbnails
+    plots/                                    # Evaluation visualizations
+  .streamlit/config.toml                     # Streamlit configuration
+```
+
+## Run the Application
+
+From the repository root:
 
 ```bash
-pip install -r requirements.txt
-streamlit run app.py
+source .venv/bin/activate
+pip install -r Health/requirements.txt
+streamlit run Health/app.py
 ```
 
-`assets/` must contain the bundle produced by the notebook's export cell:
+The application expects the model and evaluation files in `Health/assets/`.
 
-```
-assets/
-  meta.json
-  results.npz                  # embeddings, probabilities, zero-shot scores
-  cxr_classifier_quant.tflite  # 312 KB — the app loads and runs this for real
-  thumbs/<index>.jpg           # one per test image
-  plots/*.png                  # figures saved by the notebook
-```
+## Deployment
 
-Run Cell 48 of the notebook, download `cxr_app_assets.zip`, and unzip it into
-`assets/`.
+The app can be deployed with Streamlit Community Cloud using `Health/app.py` as
+the application file and `Health/requirements.txt` as the dependency file. The
+deployed application uses the lightweight TFLite runtime and does not load the
+full MedSigLIP model.
 
-## Why the embeddings are precomputed
+## Research Context
 
-MedSigLIP is ~880M parameters. Streamlit Community Cloud gives about 1 GB of RAM,
-so the vision encoder cannot be loaded there. Image embeddings are therefore
-computed once in Colab and shipped as a 1.4 MB float16 array. Everything downstream
-— the quantized classifier, the zero-shot scoring, the latency benchmark — runs
-live in the app.
+The audit is motivated by research showing that high performance in medical-image
+classification can sometimes come from shortcuts or dataset artifacts rather than
+the intended clinical signal.
 
-This is also the honest architecture for the deployment claim we make: the edge
-artifact is the *classifier*, not the whole pipeline.
+Reference:
 
-## Deploying
-
-Push to GitHub, then at share.streamlit.io point a new app at `app.py` on the main
-branch. Do **not** add `tensorflow` to `requirements.txt` — it is ~600 MB and will
-exhaust the free tier before the app starts. `ai-edge-litert` is the runtime that
-loads `.tflite` files.
-
-## Data
-
-COVID-19 Radiography Database, four classes (COVID, NORMAL, PNEUMONIA, TB).
-Check the dataset licence before redistributing any images; this repo ships only
-low-resolution thumbnails for the failure explorer.
-
-## Reference
-
-DeGrave, Janizek & Lee. *AI for radiographic COVID-19 detection selects shortcuts
-over signal.* Nature Machine Intelligence, 2021.
+DeGrave, Janizek & Lee. _AI for radiographic COVID-19 detection selects shortcuts
+over signal._ Nature Machine Intelligence, 2021.
