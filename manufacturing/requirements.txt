@@ -1,0 +1,16 @@
+# ACT-Africa 2026 Bearing Challenge — participant dependencies
+#
+# Recommended workshop interpreter: Python 3.11
+# Workshop-tested range: Python 3.9–3.13 (the environment checker is authoritative).
+#
+# Windows:
+#   py -m pip install -r requirements.txt
+# macOS / Linux:
+#   python3 -m pip install -r requirements.txt
+
+numpy>=1.23,<3
+pandas>=1.5,<4
+scipy>=1.9,<2
+scikit-learn>=1.2,<2
+notebook>=7,<8
+ipykernel>=6,<8
